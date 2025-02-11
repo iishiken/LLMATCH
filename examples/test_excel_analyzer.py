@@ -1,4 +1,4 @@
-from excel_analyzer import ExcelAnalyzer
+from analyzer.excel_analyzer import ExcelAnalyzer
 
 def main():
     # アナライザーの初期化

@@ -300,3 +300,92 @@ graph LR
     style H fill:#f9f,stroke:#333
     style I fill:#fdb,stroke:#333
 ``` 
+
+## ディレクトリ構造
+```
+medical_text_analyzer/
+├── src/
+│   ├── analyzer/
+│   │   ├── __init__.py
+│   │   ├── excel_analyzer.py
+│   │   └── llm_server.py
+│   └── data/
+│       ├── __init__.py
+│       └── data_generator.py
+├── notebooks/
+│   ├── medical_data_generator.ipynb
+│   └── medical_text_analyzer.ipynb
+├── examples/
+│   ├── test_data_generator.py
+│   └── test_excel_analyzer.py
+├── templates/
+│   └── prompt_templates.json
+├── data/
+│   └── sample_data.xlsx
+├── requirements.txt
+├── requirements.md
+└── README.md
+```
+
+## 実行方法
+
+### 1. コマンドライン実行
+```bash
+# ダミーデータの生成
+python examples/test_data_generator.py
+
+# テキスト分析の実行
+python examples/test_excel_analyzer.py
+```
+
+### 2. Jupyter Notebook実行
+```bash
+# Jupyterの起動
+jupyter notebook notebooks/
+
+# 以下のノートブックが利用可能：
+# - medical_data_generator.ipynb: ダミーデータの生成と確認
+# - medical_text_analyzer.ipynb: テキスト分析の実行と結果確認
+```
+
+### 3. 対話的な分析（Jupyter Notebook）
+医療テキストの分析を対話的に実行できるJupyter Notebookを提供しています：
+
+1. ダミーデータ生成用ノートブック（medical_data_generator.ipynb）
+   - データ生成パラメータの調整
+   - 生成データの確認
+   - データの統計情報の表示
+
+2. テキスト分析用ノートブック（medical_text_analyzer.ipynb）
+   - 段階的な分析実行
+   - 結果の視覚的確認
+   - 患者ごとの詳細表示
+
+#### ノートブックの特徴
+- 対話的なデータ確認
+- 視覚的なフィードバック
+- 柔軟なパラメータ調整
+- 詳細な結果分析
+
+#### 使用例
+```python
+# Notebookでの実行例
+from src.analyzer.excel_analyzer import ExcelAnalyzer
+from src.data.data_generator import MedicalDataGenerator
+
+# データ生成
+generator = MedicalDataGenerator()
+generator.save_to_excel("data/sample_data.xlsx", num_patients=10)
+
+# 分析実行
+analyzer = ExcelAnalyzer(
+    file_path="data/sample_data.xlsx",
+    llm_server_url="http://localhost:8000",
+    template_path="templates/prompt_templates.json"
+)
+
+# 結果の確認
+analyzer.load_excel()
+analyzer.analyze_with_template("cancer_diagnosis")
+analyzer.save_results()
+``` 
