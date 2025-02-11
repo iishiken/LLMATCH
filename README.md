@@ -86,9 +86,13 @@ analyzer = ExcelAnalyzer(
 analyzer.load_excel()
 
 # テンプレートを使用した分析
-analyzer.analyze_with_template("cancer_stage")
-analyzer.analyze_with_template("tumor_size")
-analyzer.analyze_with_template("metastasis")
+analyzer.analyze_with_template("cancer_diagnosis")   # がん診断名の抽出
+analyzer.analyze_with_template("cancer_stage")       # ステージ情報の抽出
+analyzer.analyze_with_template("diagnostic_test")    # 診断検査の抽出
+analyzer.analyze_with_template("first_treatment")    # 初回治療情報の抽出
+analyzer.analyze_with_template("chemotherapy_info")  # 抗がん剤治療情報の抽出
+analyzer.analyze_with_template("surgery_type")       # 術式の抽出
+analyzer.analyze_with_template("special_notes")      # 特記事項の抽出
 
 # 結果の保存
 analyzer.save_results()
@@ -98,12 +102,9 @@ analyzer.save_results()
 
 ### 1. 情報抽出モード（extract）
 - 特定の情報を抽出（例：ステージ、サイズ）
+- 出力形式は各テンプレートで規定
 - 結果は文字列として保存
 - 情報が見つからない場合は"N/A"
-
-### 2. 真偽判定モード（binary）
-- はい/いいえで答えられる質問用
-- 結果はTrue/Falseとして保存
 
 ## 出力形式
 
@@ -111,19 +112,42 @@ analyzer.save_results()
 - 入力ファイル名 + "_analyzed.xlsx"
 - 列の順序：
   1. 基本列（ID, day, text）
-  2. 分析結果列
-  3. その他の列
+  2. 分析結果列（以下の順序）：
+     - 分析結果_がん診断名（例："漿液性卵巣癌"）
+     - 分析結果_ステージ（例："Stage IIIC"、"T3cN1M0"）
+     - 分析結果_診断検査（例："検査名: 子宮内膜組織診, 実施日: 2023-01-10"）
+     - 分析結果_初回治療（例："日付: 2023-02-01, 種類: 手術, 内容: 腹腔鏡下子宮全摘術"）
+     - 分析結果_化学療法（例："開始日: 2023-02-15, レジメン: TC療法, 詳細: 3週毎"）
+     - 分析結果_術式（例："腹腔鏡下子宮全摘+両側付属器切除術"）
+     - 分析結果_特記事項（例："術後出血リスク高（抗凝固薬服用中）"）
+  3. その他の列（元データに存在した追加列）
+
+- 各分析結果列の特徴：
+  - 情報が見つからない場合は "N/A" を格納
+  - 複数の情報がある場合は最新のものを採用
+  - 日付情報は 'YYYY-MM-DD' 形式で統一
+  - 区切り文字として ", " を使用
 
 ### 2. 分析レポート
 ```
 分析結果の概要:
-- 分析結果_XXX:
-  総データ数: 100
-  ユニークな値の数: 5
-  未検出(N/A)の数: 10
-  主な抽出結果:
-    - 値A: 30件
-    - 値B: 25件
+- 分析結果_がん診断名:
+   総データ数: 10
+   ユニークな値の数: 3
+   未検出(N/A)の数: 0
+   主な抽出結果:
+     - 子宮体部類内膜癌: 3件
+     - 漿液性卵巣癌: 4件
+     - 高異型度漿液性癌: 3件
+
+- 分析結果_初回治療:
+   総データ数: 10
+   ユニークな値の数: 3
+   未検出(N/A)の数: 0
+   主な抽出結果:
+     - 手術: 5件
+     - 化学療法: 3件
+     - 放射線治療: 2件
 ```
 
 ## エラーハンドリング
