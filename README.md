@@ -42,6 +42,10 @@ Excelファイルを以下の形式で準備します：
 | 1 | 2023-01-01 | "腫瘍径は15mm、StageIIの乳がんと診断" |
 | 1 | 2023-02-01 | "化学療法後、腫瘍径は8mmに縮小" |
 | 2 | 2023-01-15 | "StageIIIの肺がん、腫瘍径25mm" |
+| 2 | 2023-02-15 | "リンパ節転移あり、化学療法を開始" |
+| 3 | 2023-03-01 | "StageIの大腸がん、腫瘍径12mm" |
+| 3 | 2023-04-01 | "手術により腫瘍を完全切除、転移なし" |
+| 4 | 2023-05-01 | "胃がんStageIV、多発性肝転移あり" |
 
 **重要**: 列名は必ず `ID`, `day`, `text` としてください。
 
@@ -170,3 +174,23 @@ nvidia-smi
 ## ライセンス
 - MITライセンス
 - ELYZA-japanese-Llama-2-7bモデルのライセンスに準拠 
+
+## システムの流れ
+```mermaid
+graph LR
+    A[Excelファイル] --> B[ExcelAnalyzer]
+    T[プロンプトテンプレート] --> B
+    B --> C[データ前処理]
+    C --> D[ID単位で結合]
+    D --> E[LLMサーバー]
+    E --> F[分析結果]
+    F --> G[結果の保存]
+    G --> H[分析済みExcel]
+    G --> I[分析レポート]
+
+    style A fill:#f9f,stroke:#333
+    style T fill:#bbf,stroke:#333
+    style E fill:#bfb,stroke:#333
+    style H fill:#f9f,stroke:#333
+    style I fill:#fdb,stroke:#333
+``` 
