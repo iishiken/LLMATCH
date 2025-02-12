@@ -72,8 +72,24 @@ class ExcelAnalyzer:
         try:
             with open(template_path, 'r', encoding='utf-8') as f:
                 self.templates = json.load(f)
+                
+            # テンプレートの形式を検証
+            required_keys = {"name", "analysis_type", "system_prompt"}
+            for key, template in self.templates.items():
+                missing_keys = required_keys - set(template.keys())
+                if missing_keys:
+                    print(f"警告: テンプレート '{key}' に必要なキーが不足しています: {missing_keys}")
+                    return False
+                    
             print(f"テンプレートを読み込みました（{len(self.templates)}件）")
             return True
+            
+        except FileNotFoundError:
+            print(f"エラー: テンプレートファイル '{template_path}' が見つかりません")
+            return False
+        except json.JSONDecodeError:
+            print(f"エラー: テンプレートファイルのJSON形式が不正です")
+            return False
         except Exception as e:
             print(f"テンプレートの読み込みに失敗しました: {str(e)}")
             return False
