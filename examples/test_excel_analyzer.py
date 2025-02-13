@@ -4,7 +4,7 @@ def main():
     # アナライザーの初期化
     analyzer = ExcelAnalyzer(
         file_path="sample_data.xlsx",
-        llm_server_url="http://localhost:8000",
+        llm_server_url="http://localhost:8000/v1/chat/completions",
         template_path="prompt_templates.json"
     )
     
