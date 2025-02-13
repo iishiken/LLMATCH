@@ -1,9 +1,15 @@
+# 基本的なデータ処理
 pandas>=1.5.0
-openpyxl>=3.0.0
+openpyxl>=3.0.0  # Excelファイルの読み書きに必要
+
+# OpenAI API互換のクライアント
+openai>=1.0.0
+
+# その他の依存関係
+python-dateutil>=2.8.0  # 日付処理用
+typing-extensions>=4.0.0  # 型ヒントの拡張
+
+# vLLMサーバー関連（別途セットアップが必要）
 vllm>=0.2.0
 fastapi>=0.70.0
-uvicorn>=0.15.0
-requests>=2.26.0
-jupyter>=1.0.0
-notebook>=6.0.0
-ipywidgets>=7.0.0 
+uvicorn>=0.15.0 

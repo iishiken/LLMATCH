@@ -41,17 +41,35 @@ pip install -r requirements.txt
 
 ## 使用方法
 
-### 1. ダミーデータの生成
+### A. コマンドライン実行
+
+#### 1. ダミーデータの生成
 ```bash
 python examples/test_data_generator.py
 ```
 - 50人分のダミー医療記録が `sample_data.xlsx` に生成されます
 
-### 2. テキスト分析の実行
+#### 2. テキスト分析の実行
 ```bash
 python analyze_medical_records.py
 ```
 - 分析結果は `analyzed_results.xlsx` に保存されます
+
+### B. Jupyter Notebook実行
+
+対話的な分析を行いたい場合は、Jupyter Notebookを使用できます：
+
+```bash
+jupyter notebook notebooks/medical_text_analyzer.ipynb
+```
+
+**注意**: ノートブックは、プロジェクトのルートディレクトリから実行してください。
+
+ノートブックでは以下の機能を実行できます：
+1. LLMサーバーの起動確認
+2. テキスト分析の実行
+3. 分析結果の可視化
+4. 患者ごとの詳細な経過確認
 
 ## データ形式
 
@@ -80,12 +98,12 @@ python analyze_medical_records.py
 │       ├── __init__.py
 │       └── data_generator.py
 ├── examples/
-│   ├── test_data_generator.py
-│   └── test_excel_analyzer.py
+│   └── test_data_generator.py
+├── notebooks/
+│   └── medical_text_analyzer.ipynb
 ├── templates/
 │   └── prompt_templates.json
 ├── analyze_medical_records.py
-├── setup.py
 ├── requirements.txt
 └── README.md
 ```
