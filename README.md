@@ -99,10 +99,10 @@ jupyter notebook notebooks/medical_text_analyzer.ipynb
 │       └── data_generator.py
 ├── examples/
 │   └── test_data_generator.py
-├── notebooks/
-│   └── medical_text_analyzer.ipynb
 ├── templates/
 │   └── prompt_templates.json
+├── medical_data_generator.ipynb
+├── medical_text_analyzer.ipynb
 ├── analyze_medical_records.py
 ├── requirements.txt
 └── README.md
