@@ -89,6 +89,27 @@ class ExcelAnalyzer:
         
         return combined_texts
 
+    def get_combined_texts(self, id_value: Optional[str] = None) -> Dict[str, str]:
+        """
+        IDごとにまとめられたテキストを取得する
+        
+        Parameters:
+        - id_value: 特定のIDのテキストのみを取得する場合に指定（省略可）
+        
+        Returns:
+        - Dict[str, str]: {ID: まとめられたテキスト} の形式の辞書
+        """
+        combined_texts = self._combine_texts_by_id()
+        
+        if id_value is not None:
+            if id_value in combined_texts:
+                return {id_value: combined_texts[id_value]}
+            print(f"警告: ID '{id_value}' が見つかりません")
+            return {}
+            
+        return combined_texts
+
+
     def load_templates(self, template_path: str) -> bool:
         """プロンプトテンプレートをJSONファイルから読み込む"""
         try:

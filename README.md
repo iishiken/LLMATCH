@@ -1,11 +1,20 @@
 # 医療テキスト分析システム
 
 ## 概要
-このシステムは、医療記録の時系列テキストデータを分析し、がん診療に関する重要な医療情報を自動抽出するツールです。vLLMベースのローカルLLMサーバーを使用して、高速な分析を実現します。
+このシステムは、医療記録の時系列テキストデータを分析し、がん診療に関する重要な医療情報を自動抽出するツールです。vLLMベースのローカルLLMサーバーを使用して、高速な分析を実現します。直感的なWebインターフェースにより、簡単に分析を実行できます。
 
 ## 主な機能
 
-### 1. データ生成機能 (`src/data/data_generator.py`)
+### 1. Webインターフェース (`app.py`)
+- Streamlitベースの使いやすいUI
+- ドラッグ&ドロップでのファイルアップロード
+- 分析テンプレートの選択機能
+- リアルタイムの進捗表示
+- 分析結果のプレビューと詳細表示
+- 結果のExcelファイルダウンロード
+- 患者IDごとの医療記録表示
+
+### 2. データ生成機能 (`src/data/data_generator.py`)
 - がん診療に特化したダミーデータの生成
 - 以下の情報を含むテキストデータを生成：
   - がん診断名（複数の表記揺れに対応）
@@ -15,7 +24,7 @@
   - 化学療法情報
   - 特記事項
 
-### 2. テキスト分析機能 (`src/analyzer/excel_analyzer.py`)
+### 3. テキスト分析機能 (`src/analyzer/excel_analyzer.py`)
 - Excel形式の医療記録からの情報抽出
 - 患者IDごとの時系列データの統合
 - カスタマイズ可能なプロンプトテンプレートによる分析
@@ -41,7 +50,27 @@ pip install -r requirements.txt
 
 ## 使用方法
 
-### A. コマンドライン実行
+### A. Webインターフェースでの実行（推奨）
+
+1. Streamlitアプリケーションを起動：
+```bash
+streamlit run app.py
+```
+
+2. ブラウザで以下のURLにアクセス：
+```
+http://localhost:8501
+```
+
+3. Webインターフェースの使用手順：
+   - LLMサーバーのURLを設定（デフォルト: http://localhost:8000/v1）
+   - テンプレートファイルのパスを確認
+   - 医療記録Excelファイルをアップロード
+   - 分析したいテンプレートを選択
+   - 「分析を実行」ボタンをクリック
+   - 結果を確認し、必要に応じてダウンロード
+
+### B. コマンドライン実行
 
 #### 1. ダミーデータの生成
 ```bash
@@ -55,7 +84,7 @@ python analyze_medical_records.py
 ```
 - 分析結果は `analyzed_results.xlsx` に保存されます
 
-### B. Jupyter Notebook実行
+### C. Jupyter Notebook実行
 
 対話的な分析を行いたい場合は、Jupyter Notebookを使用できます：
 
@@ -101,6 +130,7 @@ jupyter notebook notebooks/medical_text_analyzer.ipynb
 │   └── test_data_generator.py
 ├── templates/
 │   └── prompt_templates.json
+├── app.py                    # 新規追加: Streamlit Web UI
 ├── medical_data_generator.ipynb
 ├── medical_text_analyzer.ipynb
 ├── analyze_medical_records.py
@@ -112,6 +142,7 @@ jupyter notebook notebooks/medical_text_analyzer.ipynb
 - テキストの最大長は4000文字（超過分は切り捨て）
 - vLLMサーバーの実行にはGPUが必要
 - 日本語医療テキストの分析に特化
+- Streamlitインターフェースは同時に複数のユーザーによる使用を想定していません
 
 ## ライセンス
 MIT License

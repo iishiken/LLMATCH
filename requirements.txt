@@ -1,5 +1,5 @@
 # 基本的なデータ処理
-pandas>=1.5.0
+pandas>=2.0.0
 openpyxl>=3.0.0  # Excelファイルの読み書きに必要
 
 # OpenAI API互換のクライアント
@@ -12,4 +12,6 @@ typing-extensions>=4.0.0  # 型ヒントの拡張
 # vLLMサーバー関連（別途セットアップが必要）
 vllm>=0.2.0
 fastapi>=0.70.0
-uvicorn>=0.15.0 
+uvicorn>=0.15.0
+
+streamlit>=1.30.0 
