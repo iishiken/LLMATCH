@@ -1,4 +1,6 @@
 # 医療テキスト分析システム
+
+streamlitにより参考のUI作成
 <img width="1030" alt="Image" src="https://github.com/user-attachments/assets/5695a8ae-3816-4e12-acc0-ab41d5404873" />
 
 ## 概要
