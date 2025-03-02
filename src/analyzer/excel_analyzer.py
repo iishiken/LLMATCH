@@ -251,12 +251,24 @@ class ExcelAnalyzer:
                 print("警告: 分析結果の列が見つかりません")
                 return False
 
-            # 列の並び順を整理
-            column_order = (self.required_columns + analysis_columns + 
-                          [col for col in self.df.columns if col not in self.required_columns + analysis_columns])
-
+            # IDごとに結合したテキストを取得
+            combined_texts = self._combine_texts_by_id()
+            
+            # 新しいデータフレームを作成（ID、結合テキスト、分析結果のみ）
+            result_df = pd.DataFrame()
+            result_df['ID'] = list(combined_texts.keys())
+            result_df['text'] = [combined_texts[id_val] for id_val in result_df['ID']]
+            
+            # 分析結果の列を追加
+            for col in analysis_columns:
+                # 各IDに対応する分析結果を取得（最初の行の値を使用）
+                result_df[col] = result_df['ID'].apply(
+                    lambda id_val: self.df[self.df['ID'] == id_val][col].iloc[0] 
+                    if not self.df[self.df['ID'] == id_val][col].empty else None
+                )
+            
             # 保存と結果表示
-            self.df[column_order].to_excel(output_path, index=False)
+            result_df.to_excel(output_path, index=False)
             print(f"分析結果を '{output_path}' に保存しました")
             self._display_analysis_summary(analysis_columns)
             return True
