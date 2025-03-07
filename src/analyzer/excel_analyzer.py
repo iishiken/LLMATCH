@@ -18,7 +18,11 @@ class ExcelAnalyzer:
         """
         self.file_path = None  # file_pathは後でload_excelで設定する
         self.df = None
-        self.required_columns = ['ID', 'day', 'text']  # 必須カラム
+        self.column_mapping = {
+            'id_column': 'ID',
+            'date_column': 'day',
+            'text_column': 'text'
+        }
         
         # OpenAIクライアントの初期化（vLLMサーバーに接続）
         self.client = OpenAI(
@@ -30,6 +34,14 @@ class ExcelAnalyzer:
         self.templates: Dict = {}
         if template_path:
             self.load_templates(template_path)
+
+    def set_column_mapping(self, id_column: str, date_column: str, text_column: str):
+        """列名のマッピングを設定する"""
+        self.column_mapping = {
+            'id_column': id_column,
+            'date_column': date_column,
+            'text_column': text_column
+        }
 
     def _validate_data(self) -> bool:
         """データが読み込まれているかを確認"""
@@ -45,10 +57,10 @@ class ExcelAnalyzer:
             self.df = pd.read_excel(self.file_path)
             
             # 必須列の存在チェック
-            missing_columns = [col for col in self.required_columns if col not in self.df.columns]
+            missing_columns = [col for col in self.column_mapping.values() if col not in self.df.columns]
             if missing_columns:
                 print(f"エラー: 以下の必須列が見つかりません: {', '.join(missing_columns)}")
-                print(f"必要な列名: {', '.join(self.required_columns)}")
+                print(f"必要な列名: {', '.join(self.column_mapping.values())}")
                 return False
                 
             print("ファイルの読み込みが完了しました")
@@ -77,13 +89,13 @@ class ExcelAnalyzer:
             return {}
 
         # 日付列を日付型に変換
-        self.df['day'] = pd.to_datetime(self.df['day'])
+        self.df[self.column_mapping['date_column']] = pd.to_datetime(self.df[self.column_mapping['date_column']])
         
         # IDでグループ化し、日付でソート
         combined_texts = {}
-        for id_val in self.df['ID'].unique():
-            group = self.df[self.df['ID'] == id_val].sort_values('day')
-            texts = [f"[{row['day'].strftime('%Y-%m-%d')}]\n{row['text']}" 
+        for id_val in self.df[self.column_mapping['id_column']].unique():
+            group = self.df[self.df[self.column_mapping['id_column']] == id_val].sort_values(self.column_mapping['date_column'])
+            texts = [f"[{row[self.column_mapping['date_column']].strftime('%Y-%m-%d')}]\n{row[self.column_mapping['text_column']]}" 
                     for _, row in group.iterrows()]
             combined_texts[id_val] = "\n\n".join(texts)
         
@@ -171,7 +183,7 @@ class ExcelAnalyzer:
                     print(f"警告: ID {id_val} の分析中にエラーが発生: {str(e)}")
                     results[id_val] = default_value
 
-            self.df[column_name] = self.df['ID'].map(results).fillna(default_value)
+            self.df[column_name] = self.df[self.column_mapping['id_column']].map(results).fillna(default_value)
             print(f"分析が完了しました。新しい列 '{column_name}' が追加されました。")
             return True
 
@@ -256,15 +268,15 @@ class ExcelAnalyzer:
             
             # 新しいデータフレームを作成（ID、結合テキスト、分析結果のみ）
             result_df = pd.DataFrame()
-            result_df['ID'] = list(combined_texts.keys())
-            result_df['text'] = [combined_texts[id_val] for id_val in result_df['ID']]
+            result_df[self.column_mapping['id_column']] = list(combined_texts.keys())
+            result_df['text'] = [combined_texts[id_val] for id_val in result_df[self.column_mapping['id_column']]]
             
             # 分析結果の列を追加
             for col in analysis_columns:
                 # 各IDに対応する分析結果を取得（最初の行の値を使用）
-                result_df[col] = result_df['ID'].apply(
-                    lambda id_val: self.df[self.df['ID'] == id_val][col].iloc[0] 
-                    if not self.df[self.df['ID'] == id_val][col].empty else None
+                result_df[col] = result_df[self.column_mapping['id_column']].apply(
+                    lambda id_val: self.df[self.df[self.column_mapping['id_column']] == id_val][col].iloc[0] 
+                    if not self.df[self.df[self.column_mapping['id_column']] == id_val][col].empty else None
                 )
             
             # 保存と結果表示

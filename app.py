@@ -143,6 +143,41 @@ def main():
             with open("temp.xlsx", "wb") as f:
                 f.write(uploaded_file.getvalue())
             
+            # 一時的にファイルを読み込んで列名を取得
+            temp_df = pd.read_excel("temp.xlsx")
+            columns = temp_df.columns.tolist()
+            
+            # 列の選択UI
+            st.subheader("列の設定")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                id_column = st.selectbox(
+                    "ID列を選択",
+                    options=columns,
+                    index=columns.index('ID') if 'ID' in columns else 0,
+                    help="患者IDが格納されている列を選択してください"
+                )
+            
+            with col2:
+                date_column = st.selectbox(
+                    "日付列を選択",
+                    options=columns,
+                    index=columns.index('day') if 'day' in columns else 0,
+                    help="日付が格納されている列を選択してください"
+                )
+            
+            with col3:
+                text_column = st.selectbox(
+                    "テキスト列を選択",
+                    options=columns,
+                    index=columns.index('text') if 'text' in columns else 0,
+                    help="分析対象のテキストが格納されている列を選択してください"
+                )
+            
+            # 列のマッピングを設定
+            analyzer.set_column_mapping(id_column, date_column, text_column)
+        
             if analyzer.load_excel("temp.xlsx"):
                 st.success("ファイルの読み込みが完了しました")
 
