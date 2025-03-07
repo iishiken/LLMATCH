@@ -205,7 +205,7 @@ def main():
                 with col2:
                     sample_id = st.selectbox(
                         "サンプルIDを選択（オプション）",
-                        options=["すべて"] + list(analyzer.df["ID"].unique()),
+                        options=["すべて"] + list(analyzer.df[analyzer.column_mapping['id_column']].unique()),
                         help="特定の患者のデータのみを分析する場合は、該当のIDを選択してください。"
                     )
 
@@ -237,7 +237,7 @@ def main():
                                 display_analysis_summary_streamlit(summary_analyzer, analysis_columns)
                             else:
                                 # 特定IDの分析結果概要
-                                temp_df = result_df[result_df["ID"] == sample_id].copy()
+                                temp_df = result_df[result_df[analyzer.column_mapping['id_column']] == sample_id].copy()
                                 temp_analyzer = ExcelAnalyzer(llm_server_url=llm_server_url, template_path=template_path)
                                 temp_analyzer.df = temp_df
                                 
@@ -247,7 +247,7 @@ def main():
                         # 分析結果の表示
                         st.subheader("分析結果データ")
                         if sample_id != "すべて":
-                            result_df = result_df[result_df["ID"] == sample_id]
+                            result_df = result_df[result_df[analyzer.column_mapping['id_column']] == sample_id]
                         
                         st.write("分析結果の一覧を表示します")
                         st.dataframe(result_df)
