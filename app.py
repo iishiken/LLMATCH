@@ -211,56 +211,96 @@ def main():
 
                 # 分析実行ボタンと処理
                 if st.button("分析を実行", type="primary", help="選択した分析を開始します"):
+                    # 停止フラグの初期化
+                    if 'stop_analysis' not in st.session_state:
+                        st.session_state.stop_analysis = False
+
+                    # プログレスバーの初期化
+                    progress_bar = st.progress(0)
+                    status_container = st.empty()
+                    result_container = st.empty()
+                    
+                    # 停止ボタン
+                    if st.button("分析を停止", type="secondary"):
+                        st.session_state.stop_analysis = True
+                        st.warning("分析を停止しています...")
+                        return
+
                     with st.spinner("分析を実行中..."):
                         # 選択された各テンプレートに対して分析を実行
-                        for template_key in selected_templates:
-                            progress_text = f"{analyzer.templates[template_key]['name']}の分析中..."
-                            st.write(progress_text)
-                            analyzer.analyze_with_template(template_key)
+                        total_templates = len(selected_templates)
+                        for i, template_key in enumerate(selected_templates):
+                            if st.session_state.stop_analysis:
+                                st.warning("分析が停止されました")
+                                break
 
-                        # 分析結果の保存
-                        analyzer.save_results("analyzed_results.xlsx")
-                        
-                        # 分析結果の列を特定
-                        analysis_columns = [col for col in analyzer.df.columns if col.startswith('分析結果_')]
-                        
-                        # 結合テキストを含む新しいデータフレームを読み込む
-                        result_df = pd.read_excel("analyzed_results.xlsx")
-                        
-                        # 分析結果の概要を表示
-                        if analysis_columns:
-                            # 全体の分析結果概要
-                            if sample_id == "すべて":
-                                # 新しいExcelAnalyzerインスタンスを作成して結果データを設定
-                                summary_analyzer = ExcelAnalyzer(llm_server_url=llm_server_url, template_path=template_path)
-                                summary_analyzer.df = result_df
-                                display_analysis_summary_streamlit(summary_analyzer, analysis_columns)
-                            else:
-                                # 特定IDの分析結果概要
-                                temp_df = result_df[result_df[analyzer.column_mapping['id_column']] == sample_id].copy()
-                                temp_analyzer = ExcelAnalyzer(llm_server_url=llm_server_url, template_path=template_path)
-                                temp_analyzer.df = temp_df
-                                
-                                st.subheader(f"ID: {sample_id} の分析結果概要")
-                                display_analysis_summary_streamlit(temp_analyzer, analysis_columns)
-                        
-                        # 分析結果の表示
-                        st.subheader("分析結果データ")
-                        if sample_id != "すべて":
-                            result_df = result_df[result_df[analyzer.column_mapping['id_column']] == sample_id]
-                        
-                        st.write("分析結果の一覧を表示します")
-                        st.dataframe(result_df)
+                            template_name = analyzer.templates[template_key]["name"]
+                            progress_text = f"進捗: {i+1}/{total_templates} - {template_name}の分析中..."
+                            status_container.write(progress_text)
+                            
+                            # テンプレートごとの進捗を更新
+                            progress = (i + 1) / total_templates
+                            progress_bar.progress(progress)
 
-                        # 結果のダウンロード機能
-                        with open("analyzed_results.xlsx", "rb") as f:
-                            st.download_button(
-                                label="分析結果をダウンロード",
-                                data=f,
-                                file_name="analyzed_results.xlsx",
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                help="分析結果をExcelファイルとしてダウンロードできます"
-                            )
+                            # 分析実行
+                            result = analyzer.analyze_with_template(template_key)
+                            
+                            # 分析結果をリアルタイムで表示
+                            with result_container.container():
+                                st.write(f"✅ {template_name}の分析が完了")
+                                # 最新の分析結果を表示
+                                latest_col = [col for col in analyzer.df.columns if col.startswith('分析結果_')][-1]
+                                st.dataframe(analyzer.df[[analyzer.column_mapping['id_column'], latest_col]].head())
+
+                        if not st.session_state.stop_analysis:
+                            # 分析結果の保存
+                            status_container.write("分析結果を保存中...")
+                            analyzer.save_results("analyzed_results.xlsx")
+                            
+                            # 分析結果の列を特定
+                            analysis_columns = [col for col in analyzer.df.columns if col.startswith('分析結果_')]
+                            
+                            # 結合テキストを含む新しいデータフレームを読み込む
+                            result_df = pd.read_excel("analyzed_results.xlsx")
+                            
+                            # プログレスバーを完了状態に
+                            progress_bar.progress(1.0)
+                            status_container.success("すべての分析が完了しました！")
+
+                            # 分析結果の概要を表示
+                            if analysis_columns:
+                                # 全体の分析結果概要
+                                if sample_id == "すべて":
+                                    # 新しいExcelAnalyzerインスタンスを作成して結果データを設定
+                                    summary_analyzer = ExcelAnalyzer(llm_server_url=llm_server_url, template_path=template_path)
+                                    summary_analyzer.df = result_df
+                                    display_analysis_summary_streamlit(summary_analyzer, analysis_columns)
+                                else:
+                                    # 特定IDの分析結果概要
+                                    temp_df = result_df[result_df[analyzer.column_mapping['id_column']] == sample_id].copy()
+                                    temp_analyzer = ExcelAnalyzer(llm_server_url=llm_server_url, template_path=template_path)
+                                    temp_analyzer.df = temp_df
+                                    
+                                    st.subheader(f"ID: {sample_id} の分析結果概要")
+                                    display_analysis_summary_streamlit(temp_analyzer, analysis_columns)
+                            
+                            # 分析結果の表示
+                            st.subheader("分析結果データ")
+                            if sample_id != "すべて":
+                                result_df = result_df[result_df[analyzer.column_mapping['id_column']] == sample_id]
+                            
+                            st.write("分析結果の一覧を表示します")
+                            st.dataframe(result_df)
+
+                            # 結果のダウンロード機能
+                            with open("analyzed_results.xlsx", "rb") as f:
+                                st.download_button(
+                                    label="分析結果をダウンロード",
+                                    data=f,
+                                    file_name="analyzed_results.xlsx",
+                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    help="分析結果をExcelファイルとしてダウンロードできます"
+                                )
 
                 # 個別の医療記録テキスト表示
                 if sample_id != "すべて":

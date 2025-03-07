@@ -149,18 +149,24 @@ class ExcelAnalyzer:
             print(f"テンプレートの読み込みに失敗しました: {str(e)}")
             return False
 
-    def analyze_with_template(self, template_key: str) -> bool:
+    def analyze_with_template(self, template_key: str) -> dict:
         """指定されたテンプレートを使用して分析を実行"""
         if template_key not in self.templates:
             print(f"エラー: テンプレート '{template_key}' が見つかりません")
-            return False
+            return {"success": False, "error": "テンプレートが見つかりません"}
 
         template = self.templates[template_key]
-        return self.analyze_with_llm(
+        result = self.analyze_with_llm(
             question=template["name"],
             analysis_type=template["analysis_type"],
             system_prompt=template["system_prompt"]
         )
+        
+        return {
+            "success": result,
+            "template_name": template["name"],
+            "analysis_type": template["analysis_type"]
+        }
 
     def analyze_with_llm(self, question: str, analysis_type: str = "extract", system_prompt: Optional[str] = None) -> bool:
         """LLMを使用して自由記載を分析し、結果を新しい列として追加"""
