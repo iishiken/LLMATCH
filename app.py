@@ -235,15 +235,28 @@ def main():
                                 break
 
                             template_name = analyzer.templates[template_key]["name"]
-                            progress_text = f"進捗: {i+1}/{total_templates} - {template_name}の分析中..."
-                            status_container.write(progress_text)
+                            status_container.write(f"進捗: {i+1}/{total_templates} - {template_name}の分析中...")
                             
                             # テンプレートごとの進捗を更新
                             progress = (i + 1) / total_templates
                             progress_bar.progress(progress)
 
-                            # 分析実行
-                            result = analyzer.analyze_with_template(template_key)
+                            # 分析実行時の詳細な進捗表示用のコンテナ
+                            analysis_progress = st.empty()
+                            analysis_result = st.empty()
+
+                            def progress_callback(current_row, total_rows, result):
+                                analysis_progress.write(f"🔄 {total_rows}件中{current_row}件目を処理中 ({(current_row/total_rows*100):.1f}%)")
+                                if result:
+                                    analysis_result.write(f"""
+                                    **最新の分析結果:**
+                                    ```json
+                                    {json.dumps(result, ensure_ascii=False, indent=2)}
+                                    ```
+                                    """)
+
+                            # コールバック関数を渡して分析を実行
+                            result = analyzer.analyze_with_template(template_key, progress_callback=progress_callback)
                             
                             # 分析結果をリアルタイムで表示
                             with result_container.container():

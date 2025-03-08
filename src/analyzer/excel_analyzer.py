@@ -4,6 +4,7 @@ from typing import List, Optional, Dict
 from openai import OpenAI
 from time import sleep
 import json
+import numpy as np
 
 class ExcelAnalyzer:
     """
@@ -149,7 +150,7 @@ class ExcelAnalyzer:
             print(f"テンプレートの読み込みに失敗しました: {str(e)}")
             return False
 
-    def analyze_with_template(self, template_key: str) -> dict:
+    def analyze_with_template(self, template_key: str, progress_callback=None) -> dict:
         """指定されたテンプレートを使用して分析を実行"""
         if template_key not in self.templates:
             print(f"エラー: テンプレート '{template_key}' が見つかりません")
@@ -159,7 +160,8 @@ class ExcelAnalyzer:
         result = self.analyze_with_llm(
             question=template["name"],
             analysis_type=template["analysis_type"],
-            system_prompt=template["system_prompt"]
+            system_prompt=template["system_prompt"],
+            progress_callback=progress_callback
         )
         
         return {
@@ -168,7 +170,7 @@ class ExcelAnalyzer:
             "analysis_type": template["analysis_type"]
         }
 
-    def analyze_with_llm(self, question: str, analysis_type: str = "extract", system_prompt: Optional[str] = None) -> bool:
+    def analyze_with_llm(self, question: str, analysis_type: str = "extract", system_prompt: Optional[str] = None, progress_callback=None) -> bool:
         """LLMを使用して自由記載を分析し、結果を新しい列として追加"""
         if not self._validate_data():
             return False
@@ -180,10 +182,18 @@ class ExcelAnalyzer:
             combined_texts = self._combine_texts_by_id()
             results = {}
             
-            for id_val, text in combined_texts.items():
+            total_items = len(combined_texts)
+            for i, (id_val, text) in enumerate(combined_texts.items(), 1):
                 try:
                     response = self._call_openai_api(text, question, analysis_type, system_prompt)
-                    results[id_val] = self._parse_llm_response(response) if analysis_type == "binary" else response.strip()
+                    result = self._parse_llm_response(response) if analysis_type == "binary" else response.strip()
+                    results[id_val] = result
+                    
+                    if progress_callback:
+                        # int64型をint型に変換してからJSONシリアライズ可能な形式に変換
+                        callback_id = int(id_val) if isinstance(id_val, (np.int64, np.int32)) else id_val
+                        progress_callback(i, total_items, {"ID": callback_id, "結果": result})
+                        
                     sleep(0.5)  # API制限対策
                 except Exception as e:
                     print(f"警告: ID {id_val} の分析中にエラーが発生: {str(e)}")
