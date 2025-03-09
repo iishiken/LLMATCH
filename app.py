@@ -5,6 +5,7 @@ import json
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 from analyzer import ExcelAnalyzer 
+from data.data_generator import MedicalDataGenerator
 import pandas as pd
 import altair as alt
 
@@ -244,7 +245,7 @@ def main():
         )
 
     # タブの作成 - 分析タブとテンプレート編集タブ
-    tab1, tab2 = st.tabs(["分析実行", "テンプレート編集"])
+    tab1, tab2, tab3 = st.tabs(["分析実行", "テンプレート編集", "テストデータ生成"])
     
     with tab1:
         # メインコンテンツエリア
@@ -636,6 +637,97 @@ def main():
             st.error(f"テンプレートファイルのJSON形式が不正です")
         except Exception as e:
             st.error(f"テンプレートの読み込みに失敗しました: {str(e)}")
+
+    with tab3:
+        st.header("テストデータ生成")
+        
+        # データ生成オプションの設定
+        st.subheader("生成オプション")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            num_patients = st.number_input(
+                "患者数",
+                min_value=1,
+                max_value=1000,
+                value=50,
+                help="生成する患者データの数を指定してください"
+            )
+        
+        with col2:
+            output_filename = st.text_input(
+                "出力ファイル名",
+                value="sample_data.xlsx",
+                help="生成したデータを保存するExcelファイルの名前を指定してください"
+            )
+        
+        # データ生成の実行
+        if st.button("テストデータを生成", type="primary"):
+            try:
+                with st.spinner("データを生成中..."):
+                    # ジェネレーターの初期化
+                    generator = MedicalDataGenerator()
+                    
+                    # データの生成と保存
+                    generator.save_to_excel(output_filename, num_patients=num_patients)
+                    
+                    # 生成したデータのプレビュー
+                    df = pd.read_excel(output_filename)
+                    
+                    st.success(f"{num_patients}件のテストデータを生成し、{output_filename}に保存しました")
+                    
+                    # データの統計情報を表示
+                    st.subheader("生成データの統計")
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        st.metric("総レコード数", len(df))
+                    with col2:
+                        st.metric("ユニーク患者数", df['ID'].nunique())
+                    with col3:
+                        st.metric("平均レコード数/患者", round(len(df) / df['ID'].nunique(), 1))
+                    
+                    # データプレビュー
+                    st.subheader("データプレビュー")
+                    st.dataframe(df.head())
+                    
+                    # ダウンロードボタン
+                    with open(output_filename, "rb") as f:
+                        st.download_button(
+                            label="生成したデータをダウンロード",
+                            data=f,
+                            file_name=output_filename,
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        )
+                    
+                    # 詳細な統計情報
+                    with st.expander("詳細な統計情報"):
+                        # 日付の範囲
+                        st.write("#### 日付範囲")
+                        min_date = pd.to_datetime(df['day'].min())
+                        max_date = pd.to_datetime(df['day'].max())
+                        st.write(f"開始日: {min_date.strftime('%Y-%m-%d')}")
+                        st.write(f"終了日: {max_date.strftime('%Y-%m-%d')}")
+                        st.write(f"期間: {(max_date - min_date).days}日")
+                        
+                        # テキストの統計
+                        st.write("#### テキスト統計")
+                        text_lengths = df['text'].str.len()
+                        st.write(f"平均文字数: {round(text_lengths.mean(), 1)}")
+                        st.write(f"最小文字数: {text_lengths.min()}")
+                        st.write(f"最大文字数: {text_lengths.max()}")
+                        
+                        # テキストサンプル
+                        st.write("#### テキストサンプル")
+                        sample_texts = df.sample(min(3, len(df)))['text'].tolist()
+                        for i, text in enumerate(sample_texts, 1):
+                            st.text_area(f"サンプル {i}", text, height=100)
+            
+            except Exception as e:
+                st.error(f"データ生成中にエラーが発生しました: {str(e)}")
+                st.write("エラーの詳細:")
+                st.exception(e)
 
 if __name__ == "__main__":
     # セッション状態の初期化
