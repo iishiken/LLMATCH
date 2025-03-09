@@ -113,6 +113,21 @@ def main():
             help="OpenAI互換のLLMサーバーのURLを入力してください。デフォルトはwindows serverです。"
         )
         
+        # 一時的なExcelAnalyzerインスタンスを作成してモデル一覧を取得
+        temp_analyzer = ExcelAnalyzer(llm_server_url=llm_server_url)
+        available_models = temp_analyzer.get_available_models()
+
+        # モデルの選択
+        if available_models:
+            selected_model = st.selectbox(
+                "使用するモデル",
+                options=available_models,
+                help="分析に使用するLLMモデルを選択してください"
+            )
+        else:
+            st.error("利用可能なモデルを取得できませんでした")
+            selected_model = "Qwen/Qwen2.5-72B-Instruct-GPTQ-Int4"  # デフォルトモデル
+        
         # テンプレートファイルの設定
         template_path = st.text_input(
             "テンプレートファイルパス",
@@ -138,6 +153,9 @@ def main():
                 llm_server_url=llm_server_url,
                 template_path=template_path
             )
+            
+            # 選択されたモデルを設定
+            analyzer.set_model(selected_model)
 
             # アップロードされたファイルを一時保存して読み込む
             with open("temp.xlsx", "wb") as f:

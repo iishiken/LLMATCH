@@ -31,6 +31,9 @@ class ExcelAnalyzer:
             base_url=f"{llm_server_url}"
         )
         
+        # デフォルトのモデル名を設定
+        self.model_name = "Qwen/Qwen2.5-72B-Instruct-GPTQ-Int4"
+        
         # プロンプトテンプレートの保存用辞書
         self.templates: Dict = {}
         if template_path:
@@ -236,7 +239,7 @@ class ExcelAnalyzer:
             ]
 
             completion = self.client.chat.completions.create(
-                model="Qwen/Qwen2.5-72B-Instruct-GPTQ-Int4",
+                model=self.model_name,  # インスタンス変数のモデル名を使用
                 messages=messages,
                 temperature=0.7,
                 max_tokens=512
@@ -326,3 +329,26 @@ class ExcelAnalyzer:
                     print("  主な抽出結果:")
                     for value, count in value_counts.head(5).items():
                         print(f"    - {value}: {count}件")
+
+    def get_available_models(self) -> List[str]:
+        """
+        LLMサーバーで利用可能なモデル一覧を取得する
+
+        Returns:
+            List[str]: 利用可能なモデル名のリスト
+        """
+        try:
+            response = self.client.models.list()
+            return [model.id for model in response.data]
+        except Exception as e:
+            print(f"モデル一覧の取得に失敗しました: {str(e)}")
+            return []
+
+    def set_model(self, model_name: str):
+        """
+        使用するモデルを設定する
+
+        Parameters:
+            model_name (str): 使用するモデルの名前
+        """
+        self.model_name = model_name
