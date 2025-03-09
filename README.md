@@ -122,23 +122,24 @@ jupyter notebook notebooks/medical_text_analyzer.ipynb
 ## ファイル構成
 ```
 .
-├── src/
-│   ├── analyzer/
+├── src/                      # ソースコードのメインディレクトリ
+│   ├── analyzer/            # 医療テキスト分析の中核機能を提供するモジュール
 │   │   ├── __init__.py
-│   │   └── excel_analyzer.py
-│   └── data/
+│   │   └── excel_analyzer.py  # Excelファイルの分析とLLMを使用した情報抽出を行うクラス
+│   └── data/               # データ生成関連のモジュール
 │       ├── __init__.py
-│       └── data_generator.py
-├── examples/
-│   └── test_data_generator.py
-├── templates/
-│   └── prompt_templates.json
-├── app.py                    # 新規追加: Streamlit Web UI
-├── medical_data_generator.ipynb
-├── medical_text_analyzer.ipynb
-├── analyze_medical_records.py
-├── requirements.txt
-└── README.md
+│       └── data_generator.py  # テスト用の医療記録ダミーデータを生成するクラス
+├── examples/                # サンプルコードと使用例
+│   └── test_data_generator.py  # データ生成機能のサンプル実装
+├── templates/              # 構造化抽出用のプロンプトテンプレートを保管
+│   └── prompt_templates.json  # 各分析タスク用のLLMプロンプト定義
+├── app.py                  # Streamlitベースのメインウェブアプリケーション
+├── analyze_medical_records.py  # コマンドライン用の分析実行スクリプト
+├── medical_data_generator.ipynb  # データ生成機能の開発・テスト用ノートブック
+├── medical_text_analyzer.ipynb   # 分析機能の開発・テスト用ノートブック
+├── requirements.txt        # Pythonパッケージの依存関係定義
+├── LICENSE                 # MITライセンス
+└── README.md              # プロジェクトのドキュメント
 ```
 
 ## 制限事項
