@@ -1,23 +1,41 @@
 # 必要なライブラリのインポート
 import pandas as pd
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Literal
 from openai import OpenAI
 from time import sleep
 import json
 import numpy as np
+import google.generativeai as genai
+from anthropic import Anthropic
+import requests
+import os
 
 class ExcelAnalyzer:
     """
     医療テキストデータの分析を行うクラス。
     Excelファイルから医療記録を読み込み、LLMを使用して様々な情報を抽出・分析する。
     """
-    def __init__(self, llm_server_url: str = "http://localhost:8000", template_path: str = None):
+    # 各プロバイダーの環境変数名を定義
+    ENV_VAR_NAMES = {
+        "openai": "OPENAI_API_KEY",
+        "gemini": "GOOGLE_API_KEY",
+        "claude": "ANTHROPIC_API_KEY",
+        "deepseek": "DEEPSEEK_API_KEY"
+    }
+
+    def __init__(self, 
+                 llm_server_url: str = "http://localhost:8000",
+                 template_path: str = None,
+                 provider: Literal["vllm", "openai", "gemini", "claude", "deepseek"] = "vllm",
+                 api_key: Optional[str] = None):
         """
         Parameters:
         - llm_server_url: OpenAI互換のvLLMサーバーのURL（デフォルトはlocalhost:8000）
         - template_path: プロンプトテンプレートのJSONファイルパス
+        - provider: 使用するLLMプロバイダー
+        - api_key: APIキー（vllm以外のプロバイダーで必要）。未指定の場合は環境変数から取得
         """
-        self.file_path = None  # file_pathは後でload_excelで設定する
+        self.file_path = None
         self.df = None
         self.column_mapping = {
             'id_column': 'ID',
@@ -25,19 +43,75 @@ class ExcelAnalyzer:
             'text_column': 'text'
         }
         
-        # OpenAIクライアントの初期化（vLLMサーバーに接続）
-        self.client = OpenAI(
-            api_key="EMPTY",
-            base_url=f"{llm_server_url}"
-        )
+        self.provider = provider
+        # APIキーが指定されていない場合は環境変数から取得
+        self.api_key = api_key or self._get_api_key_from_env()
+        self.llm_server_url = llm_server_url
+        
+        # プロバイダー別のクライアント初期化
+        self._initialize_client()
         
         # デフォルトのモデル名を設定
-        self.model_name = "Qwen/Qwen2.5-72B-Instruct-GPTQ-Int4"
+        self.model_name = self._get_default_model()
         
         # プロンプトテンプレートの保存用辞書
         self.templates: Dict = {}
         if template_path:
             self.load_templates(template_path)
+
+    def _get_api_key_from_env(self) -> Optional[str]:
+        """環境変数からAPIキーを取得"""
+        if self.provider == "vllm":
+            return None
+        
+        env_var_name = self.ENV_VAR_NAMES.get(self.provider)
+        if not env_var_name:
+            return None
+            
+        api_key = os.getenv(env_var_name)
+        if not api_key and self.provider != "vllm":
+            raise ValueError(f"{self.provider}のAPIキーが必要です。環境変数 {env_var_name} を設定してください。")
+        
+        return api_key
+
+    def _initialize_client(self):
+        """プロバイダー別のクライアントを初期化"""
+        if self.provider == "vllm":
+            self.client = OpenAI(
+                api_key="EMPTY",
+                base_url=self.llm_server_url
+            )
+        elif self.provider == "openai":
+            if not self.api_key:
+                raise ValueError("OpenAIのAPIキーが必要です")
+            self.client = OpenAI(api_key=self.api_key)
+        elif self.provider == "gemini":
+            if not self.api_key:
+                raise ValueError("Google Cloud APIキーが必要です")
+            genai.configure(api_key=self.api_key)
+            self.client = genai
+        elif self.provider == "claude":
+            if not self.api_key:
+                raise ValueError("AnthropicのAPIキーが必要です")
+            self.client = Anthropic(api_key=self.api_key)
+        elif self.provider == "deepseek":
+            if not self.api_key:
+                raise ValueError("DeepseekのAPIキーが必要です")
+            self.client = OpenAI(
+                api_key=self.api_key,
+                base_url="https://api.deepseek.com/v1"
+            )
+
+    def _get_default_model(self) -> str:
+        """プロバイダー別のデフォルトモデルを返す"""
+        defaults = {
+            "vllm": "Qwen/Qwen2.5-72B-Instruct-GPTQ-Int4",
+            "openai": "gpt-4-turbo-preview",
+            "gemini": "gemini-pro",
+            "claude": "claude-3-opus-20240229",
+            "deepseek": "deepseek-chat"
+        }
+        return defaults.get(self.provider, "")
 
     def set_column_mapping(self, id_column: str, date_column: str, text_column: str):
         """列名のマッピングを設定する"""
@@ -223,7 +297,7 @@ class ExcelAnalyzer:
         """
 
     def _call_openai_api(self, text: str, question: str, analysis_type: str, system_prompt: Optional[str] = None) -> str:
-        """OpenAI互換のvLLMサーバーを呼び出してテキスト分析を実行"""
+        """LLMを呼び出してテキスト分析を実行"""
         try:
             system_prompt = system_prompt or self._get_default_system_prompt(analysis_type)
 
@@ -233,19 +307,36 @@ class ExcelAnalyzer:
                 text = text[-max_length:]
                 print("警告: テキストが長すぎるため、最新の部分のみを使用します")
 
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": f"テキスト: {text}\n\n質問: {question}"}
-            ]
+            if self.provider in ["vllm", "openai", "deepseek"]:
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"テキスト: {text}\n\n質問: {question}"}
+                ]
+                completion = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=messages,
+                    temperature=0.7,
+                    max_tokens=512
+                )
+                return completion.choices[0].message.content.strip()
 
-            completion = self.client.chat.completions.create(
-                model=self.model_name,  # インスタンス変数のモデル名を使用
-                messages=messages,
-                temperature=0.7,
-                max_tokens=512
-            )
-            
-            return completion.choices[0].message.content.strip()
+            elif self.provider == "gemini":
+                prompt = f"システム指示: {system_prompt}\n\nテキスト: {text}\n\n質問: {question}"
+                model = self.client.GenerativeModel(self.model_name)
+                response = model.generate_content(prompt)
+                return response.text.strip()
+
+            elif self.provider == "claude":
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"テキスト: {text}\n\n質問: {question}"}
+                ]
+                completion = self.client.messages.create(
+                    model=self.model_name,
+                    messages=messages,
+                    max_tokens=512
+                )
+                return completion.content[0].text.strip()
 
         except Exception as e:
             raise Exception(f"API呼び出し中にエラーが発生: {str(e)}")
@@ -338,8 +429,19 @@ class ExcelAnalyzer:
             List[str]: 利用可能なモデル名のリスト
         """
         try:
-            response = self.client.models.list()
-            return [model.id for model in response.data]
+            if self.provider == "vllm":
+                response = self.client.models.list()
+                return [model.id for model in response.data]
+            elif self.provider == "openai":
+                response = self.client.models.list()
+                return [model.id for model in response.data]
+            elif self.provider == "gemini":
+                return ["gemini-pro"]
+            elif self.provider == "claude":
+                return ["claude-3-opus-20240229", "claude-3-sonnet-20240229"]
+            elif self.provider == "deepseek":
+                return ["deepseek-chat", "deepseek-coder"]
+            return []
         except Exception as e:
             print(f"モデル一覧の取得に失敗しました: {str(e)}")
             return []

@@ -106,27 +106,135 @@ def main():
     # サイドバーの設定 - 分析に必要な基本設定を行うエリア
     with st.sidebar:
         st.header("設定")
-        # LLMサーバーの設定
-        llm_server_url = st.text_input(
-            "LLMサーバーURL",
-            value="http://10.240.59.247:8000/v1",
-            help="OpenAI互換のLLMサーバーのURLを入力してください。デフォルトはwindows serverです。"
+        
+        # LLMプロバイダーの選択
+        provider = st.selectbox(
+            "LLMプロバイダー",
+            options=["vllm", "openai", "gemini", "claude", "deepseek"],
+            help="使用するLLMプロバイダーを選択してください"
         )
         
-        # 一時的なExcelAnalyzerインスタンスを作成してモデル一覧を取得
-        temp_analyzer = ExcelAnalyzer(llm_server_url=llm_server_url)
-        available_models = temp_analyzer.get_available_models()
+        # APIキーの入力（vllm以外の場合）
+        api_key = None
+        if provider != "vllm":
+            # 環境変数名を取得
+            env_var_name = ExcelAnalyzer.ENV_VAR_NAMES.get(provider)
+            
+            # デバッグ情報の表示
+            st.write("### デバッグ情報")
+            st.write(f"検索する環境変数名: {env_var_name}")
+            
+            # 環境変数の直接確認
+            import subprocess
+            try:
+                result = subprocess.run(['echo', f"${env_var_name}"], capture_output=True, text=True)
+                shell_env_value = result.stdout.strip()
+                st.write(f"シェルでの環境変数の値: {shell_env_value if shell_env_value else '空または未設定'}")
+            except Exception as e:
+                st.write(f"シェルコマンドエラー: {str(e)}")
 
-        # モデルの選択
-        if available_models:
-            selected_model = st.selectbox(
-                "使用するモデル",
-                options=available_models,
-                help="分析に使用するLLMモデルを選択してください"
+            # 環境変数の再読み込みを試みる
+            try:
+                import dotenv
+                dotenv.load_dotenv(override=True)
+            except Exception as e:
+                st.write(f"環境変数再読み込みエラー: {str(e)}")
+            
+            # 現在の環境変数の状態を表示
+            st.write(f"設定されている環境変数一覧:")
+            env_vars = {k: v for k, v in os.environ.items() if k in ExcelAnalyzer.ENV_VAR_NAMES.values()}
+            for k in env_vars.keys():
+                env_value = os.environ.get(k, "")
+                st.write(f"- {k}: {'設定済み' if env_value else '未設定'}")
+            
+            # 環境変数からAPIキーを取得（空文字列の場合はNoneとして扱う）
+            env_api_key = os.environ.get(env_var_name, "").strip()
+            st.write(f"環境変数から取得したAPIキーの長さ: {len(env_api_key) if env_api_key else 0}")
+            
+            if not env_api_key:
+                env_api_key = None
+                # シェルから直接取得を試みる
+                try:
+                    shell_cmd = f"echo ${env_var_name}"
+                    shell_value = subprocess.check_output(shell_cmd, shell=True, text=True).strip()
+                    if shell_value:
+                        env_api_key = shell_value
+                        st.write(f"シェルから直接APIキーを取得しました")
+                except Exception as e:
+                    st.write(f"シェルからの取得エラー: {str(e)}")
+            
+            st.info(f"""
+            ### APIキーの設定方法
+            1. 環境変数で設定（推奨）:
+               - 環境変数名: `{env_var_name}`
+               - 現在の状態: {'✅ 設定済み' if env_api_key else '❌ 未設定'}
+            2. 直接入力（一時的）:
+               - 下のテキストボックスに入力
+            """)
+            
+            # 直接入力用のテキストボックス（環境変数が設定されている場合は非表示）
+            if not env_api_key:
+                api_key = st.text_input(
+                    f"{provider.upper()}のAPIキー（任意）",
+                    type="password",
+                    help=f"環境変数 {env_var_name} が設定されていない場合のみ入力してください"
+                )
+            else:
+                api_key = env_api_key
+                st.success(f"環境変数 {env_var_name} からAPIキーを読み込みました")
+            
+            # APIキーが環境変数にもUIにも設定されていない場合は警告
+            if not env_api_key and not api_key:
+                st.warning(f"""
+                APIキーが設定されていません。以下のいずれかの方法で設定してください：
+                1. 環境変数 `{env_var_name}` を設定
+                2. 上のテキストボックスに直接入力
+                
+                環境変数の設定方法:
+                ```bash
+                export {env_var_name}="your-api-key"
+                ```
+                
+                現在の設定を確認:
+                ```bash
+                echo ${env_var_name}
+                ```
+                """)
+        
+        # LLMサーバーの設定（vllmの場合のみ表示）
+        llm_server_url = None
+        if provider == "vllm":
+            llm_server_url = st.text_input(
+                "LLMサーバーURL",
+                value="http://10.240.59.247:8000/v1",
+                help="OpenAI互換のLLMサーバーのURLを入力してください。デフォルトはwindows serverです。"
             )
-        else:
-            st.error("利用可能なモデルを取得できませんでした")
-            selected_model = "Qwen/Qwen2.5-72B-Instruct-GPTQ-Int4"  # デフォルトモデル
+        
+        # 一時的なExcelAnalyzerインスタンスを作成してモデル一覧を取得
+        try:
+            temp_analyzer = ExcelAnalyzer(
+                llm_server_url=llm_server_url,
+                provider=provider,
+                api_key=api_key  # 直接入力されたAPIキーを優先
+            )
+            available_models = temp_analyzer.get_available_models()
+
+            # モデルの選択
+            if available_models:
+                selected_model = st.selectbox(
+                    "使用するモデル",
+                    options=available_models,
+                    help="分析に使用するLLMモデルを選択してください"
+                )
+            else:
+                st.error("利用可能なモデルを取得できませんでした")
+                selected_model = temp_analyzer.model_name  # デフォルトモデルを使用
+        except ValueError as e:
+            st.error(str(e))
+            st.stop()
+        except Exception as e:
+            st.error(f"エラーが発生しました: {str(e)}")
+            st.stop()
         
         # テンプレートファイルの設定
         template_path = st.text_input(
@@ -151,7 +259,9 @@ def main():
             # ExcelAnalyzerのインスタンスを作成 - 分析エンジンの初期化
             analyzer = ExcelAnalyzer(
                 llm_server_url=llm_server_url,
-                template_path=template_path
+                template_path=template_path,
+                provider=provider,
+                api_key=api_key
             )
             
             # 選択されたモデルを設定
