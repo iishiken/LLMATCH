@@ -1,17 +1,30 @@
-# 基本的なデータ処理
+# データ処理・分析
 pandas>=2.0.0
-openpyxl>=3.0.0  # Excelファイルの読み書きに必要
+numpy>=1.24.0
+openpyxl>=3.0.0  # Excelファイルの読み書き用
 
-# OpenAI API互換のクライアント
+# LLMクライアント
 openai>=1.0.0
+google-generativeai>=0.3.0  # Gemini API用
+anthropic>=0.7.0  # Claude API用
 
-# その他の依存関係
-python-dateutil>=2.8.0  # 日付処理用
-typing-extensions>=4.0.0  # 型ヒントの拡張
+# Webアプリケーション
+streamlit>=1.30.0
+altair>=5.0.0  # データ可視化用
 
-# vLLMサーバー関連（別途セットアップが必要）
+# 環境変数管理
+python-dotenv>=1.0.0
+
+# 型ヒント
+typing-extensions>=4.0.0
+
+# 日付処理
+python-dateutil>=2.8.0
+
+# リクエスト処理
+requests>=2.31.0
+
+# vLLMサーバー関連（オプション）
 vllm>=0.2.0
 fastapi>=0.70.0
-uvicorn>=0.15.0
-
-streamlit>=1.30.0 
+uvicorn>=0.15.0 
