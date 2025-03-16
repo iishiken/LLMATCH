@@ -10,11 +10,11 @@ streamlitによる直感的なUI作成
 ## 主な機能
 
 ### 1. マルチLLMプロバイダー対応
-- vLLM（ローカルLLMサーバー）
-- OpenAI
-- Google Gemini
-- Anthropic Claude
-- Deepseek
+- vLLM（ローカルLLMサーバー - Qwen 2.5 72B）
+- OpenAI（GPT-4 Turbo）
+- Google Gemini（Gemini 2.0 Flash Lite）
+- Anthropic Claude（Claude 3 Opus）
+- Deepseek（Deepseek Chat）
 
 ### 2. Webインターフェース (`app.py`)
 - Streamlitベースの使いやすいUI

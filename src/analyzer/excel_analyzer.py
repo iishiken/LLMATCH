@@ -17,6 +17,7 @@ class ExcelAnalyzer:
     """
     # 各プロバイダーの環境変数名を定義
     ENV_VAR_NAMES = {
+        "vllm": None,
         "openai": "OPENAI_API_KEY",
         "gemini": "GOOGLE_API_KEY",
         "claude": "ANTHROPIC_API_KEY",
@@ -64,15 +65,41 @@ class ExcelAnalyzer:
         if self.provider == "vllm":
             return None
         
-        env_var_name = self.ENV_VAR_NAMES.get(self.provider)
+        env_var_name = self.ENV_VAR_NAMES.get(self.provider.lower())
         if not env_var_name:
+            print(f"警告: プロバイダー '{self.provider}' の環境変数名が定義されていません")
             return None
             
-        api_key = os.getenv(env_var_name)
-        if not api_key and self.provider != "vllm":
-            raise ValueError(f"{self.provider}のAPIキーが必要です。環境変数 {env_var_name} を設定してください。")
+        # .zshrcから環境変数を読み込み
+        try:
+            import subprocess
+            import os
+            
+            # ユーザーのホームディレクトリを取得
+            home = os.path.expanduser("~")
+            zshrc_path = os.path.join(home, ".zshrc")
+            
+            # .zshrcを読み込んで環境変数を設定
+            cmd = f"source {zshrc_path} && echo ${env_var_name}"
+            result = subprocess.check_output(cmd, shell=True, text=True, executable='/bin/zsh').strip()
+            
+            if result:
+                print(f".zshrcから{env_var_name}を取得しました: {result[:5]}...")
+                # 環境変数を現在のプロセスにも設定
+                os.environ[env_var_name] = result
+                return result
+            else:
+                print(f".zshrcから{env_var_name}を取得できませんでした")
+        except Exception as e:
+            print(f".zshrcからの環境変数取得に失敗: {str(e)}")
+
+        if self.provider != "vllm":
+            raise ValueError(f"{self.provider}のAPIキーが必要です。環境変数 {env_var_name} を設定してください。\n"
+                           f"現在の環境変数の状態:\n"
+                           f"- os.getenv: {os.getenv(env_var_name)}\n"
+                           f"- .zshrc: {subprocess.check_output(f'source {zshrc_path} && echo ${env_var_name}', shell=True, text=True, executable='/bin/zsh').strip()}")
         
-        return api_key
+        return None
 
     def _initialize_client(self):
         """プロバイダー別のクライアントを初期化"""
@@ -88,8 +115,10 @@ class ExcelAnalyzer:
         elif self.provider == "gemini":
             if not self.api_key:
                 raise ValueError("Google Cloud APIキーが必要です")
-            genai.configure(api_key=self.api_key)
-            self.client = genai
+            self.client = OpenAI(
+                api_key=self.api_key,
+                base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+            )
         elif self.provider == "claude":
             if not self.api_key:
                 raise ValueError("AnthropicのAPIキーが必要です")
@@ -106,9 +135,9 @@ class ExcelAnalyzer:
         """プロバイダー別のデフォルトモデルを返す"""
         defaults = {
             "vllm": "Qwen/Qwen2.5-72B-Instruct-GPTQ-Int4",
-            "openai": "gpt-4-turbo-preview",
-            "gemini": "gemini-pro",
-            "claude": "claude-3-opus-20240229",
+            "openai": "gpt-4o-mini-2024-07-18",
+            "gemini": "gemini-2.0-flash-lite",
+            "claude": "claude-3-haiku-20240307",
             "deepseek": "deepseek-chat"
         }
         return defaults.get(self.provider, "")
@@ -235,7 +264,6 @@ class ExcelAnalyzer:
 
         template = self.templates[template_key]
         result = self.analyze_with_llm(
-            question=template["name"],
             analysis_type=template["analysis_type"],
             system_prompt=template["system_prompt"],
             progress_callback=progress_callback
@@ -247,12 +275,12 @@ class ExcelAnalyzer:
             "analysis_type": template["analysis_type"]
         }
 
-    def analyze_with_llm(self, question: str, analysis_type: str = "extract", system_prompt: Optional[str] = None, progress_callback=None) -> bool:
+    def analyze_with_llm(self, analysis_type: str = "extract", system_prompt: Optional[str] = None, progress_callback=None) -> bool:
         """LLMを使用して自由記載を分析し、結果を新しい列として追加"""
         if not self._validate_data():
             return False
 
-        column_name = f"分析結果_{question[:10]}"
+        column_name = f"分析結果_{analysis_type}"
         default_value = False if analysis_type == "binary" else "N/A"
         
         try:
@@ -262,7 +290,7 @@ class ExcelAnalyzer:
             total_items = len(combined_texts)
             for i, (id_val, text) in enumerate(combined_texts.items(), 1):
                 try:
-                    response = self._call_openai_api(text, question, analysis_type, system_prompt)
+                    response = self._call_openai_api(text, analysis_type, system_prompt)
                     result = self._parse_llm_response(response) if analysis_type == "binary" else response.strip()
                     results[id_val] = result
                     
@@ -296,7 +324,7 @@ class ExcelAnalyzer:
         - 複数の情報がある場合は、最新の情報を返してください
         """
 
-    def _call_openai_api(self, text: str, question: str, analysis_type: str, system_prompt: Optional[str] = None) -> str:
+    def _call_openai_api(self, text: str, analysis_type: str, system_prompt: Optional[str] = None) -> str:
         """LLMを呼び出してテキスト分析を実行"""
         try:
             system_prompt = system_prompt or self._get_default_system_prompt(analysis_type)
@@ -307,29 +335,23 @@ class ExcelAnalyzer:
                 text = text[-max_length:]
                 print("警告: テキストが長すぎるため、最新の部分のみを使用します")
 
-            if self.provider in ["vllm", "openai", "deepseek"]:
+            if self.provider in ["vllm", "openai", "deepseek", "gemini"]:
                 messages = [
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"テキスト: {text}\n\n質問: {question}"}
+                    {"role": "user", "content": f"テキスト: {text}"}
                 ]
                 completion = self.client.chat.completions.create(
                     model=self.model_name,
                     messages=messages,
-                    temperature=0.7,
+                    temperature=0.1,
                     max_tokens=512
                 )
                 return completion.choices[0].message.content.strip()
 
-            elif self.provider == "gemini":
-                prompt = f"システム指示: {system_prompt}\n\nテキスト: {text}\n\n質問: {question}"
-                model = self.client.GenerativeModel(self.model_name)
-                response = model.generate_content(prompt)
-                return response.text.strip()
-
             elif self.provider == "claude":
                 messages = [
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"テキスト: {text}\n\n質問: {question}"}
+                    {"role": "user", "content": f"テキスト: {text}"}
                 ]
                 completion = self.client.messages.create(
                     model=self.model_name,
@@ -438,7 +460,7 @@ class ExcelAnalyzer:
             elif self.provider == "gemini":
                 return ["gemini-pro"]
             elif self.provider == "claude":
-                return ["claude-3-opus-20240229", "claude-3-sonnet-20240229"]
+                return ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"]
             elif self.provider == "deepseek":
                 return ["deepseek-chat", "deepseek-coder"]
             return []
