@@ -108,6 +108,12 @@ def main():
     with st.sidebar:
         st.header("設定")
         
+        # GitHubのIssueへのリンク
+        st.markdown("""
+        ### フィードバック
+        🔔 [ご意見・ご要望はこちら](https://github.com/iishiken/LLMATCH/issues)
+        """)
+        
         # LLMプロバイダーの選択
         provider = st.selectbox(
             "LLMプロバイダー",
