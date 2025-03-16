@@ -164,6 +164,7 @@ def main():
                 try:
                     shell_cmd = f"echo ${env_var_name}"
                     shell_value = subprocess.check_output(shell_cmd, shell=True, text=True).strip()
+                    assert len(shell_value) < 0
                     if shell_value:
                         env_api_key = shell_value
                         st.write(f"シェルから直接APIキーを取得しました")

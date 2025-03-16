@@ -2,10 +2,11 @@
 import pandas as pd
 from typing import List, Optional, Dict, Literal
 from openai import OpenAI
+from google import genai
+from google.genai import types
 from time import sleep
 import json
 import numpy as np
-import google.generativeai as genai
 from anthropic import Anthropic
 import requests
 import os
@@ -115,10 +116,7 @@ class ExcelAnalyzer:
         elif self.provider == "gemini":
             if not self.api_key:
                 raise ValueError("Google Cloud APIキーが必要です")
-            self.client = OpenAI(
-                api_key=self.api_key,
-                base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
-            )
+            self.client = genai.Client(api_key=self.api_key)
         elif self.provider == "claude":
             if not self.api_key:
                 raise ValueError("AnthropicのAPIキーが必要です")
@@ -335,7 +333,7 @@ class ExcelAnalyzer:
                 text = text[-max_length:]
                 print("警告: テキストが長すぎるため、最新の部分のみを使用します")
 
-            if self.provider in ["vllm", "openai", "deepseek", "gemini"]:
+            if self.provider in ["vllm", "openai", "deepseek"]:
                 messages = [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"テキスト: {text}"}
@@ -347,6 +345,15 @@ class ExcelAnalyzer:
                     max_tokens=512
                 )
                 return completion.choices[0].message.content.strip()
+
+            elif self.provider == "gemini":
+                response = self.client.models.generate_content(
+                    model = "gemini-2.0-flash-lite",
+                    contents= text,
+                    config = types.GenerateContentConfig(
+                        system_instruction=system_prompt
+                ))
+                return response.text
 
             elif self.provider == "claude":
                 messages = [
