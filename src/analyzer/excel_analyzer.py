@@ -289,26 +289,50 @@ class ExcelAnalyzer:
         try:
             combined_texts = self._combine_texts_by_id()
             results = {}
+            reasons = {}  # 理由を保存する辞書を追加
             
             total_items = len(combined_texts)
             for i, (id_val, text) in enumerate(combined_texts.items(), 1):
                 try:
                     response = self._call_openai_api(text, analysis_type, system_prompt)
-                    result = self._parse_llm_response(response) if analysis_type == "binary" else response.strip()
+                    
+                    # JSON応答の処理
+                    try:
+                        # デバッグ用に応答を表示
+                        print(f"LLM応答: {response}")
+                        response_dict = json.loads(response)
+                        result = response_dict.get("result", default_value)
+                        reason = response_dict.get("reason", "理由なし")
+                    except json.JSONDecodeError as e:
+                        print(f"JSON解析エラー: {str(e)}")
+                        print(f"問題の応答: {response}")
+                        # JSONとして解析できない場合は、従来の処理を実行
+                        result = self._parse_llm_response(response) if analysis_type == "binary" else response.strip()
+                        reason = "理由なし"
+                    
                     results[id_val] = result
+                    reasons[id_val] = reason
                     
                     if progress_callback:
                         # int64型をint型に変換してからJSONシリアライズ可能な形式に変換
                         callback_id = int(id_val) if isinstance(id_val, (np.int64, np.int32)) else id_val
-                        progress_callback(i, total_items, {"ID": callback_id, "結果": result})
+                        progress_callback(i, total_items, {
+                            "ID": callback_id, 
+                            "結果": result,
+                            "理由": reason
+                        })
                         
                     sleep(0.5)  # API制限対策
                 except Exception as e:
                     print(f"警告: ID {id_val} の分析中にエラーが発生: {str(e)}")
                     results[id_val] = default_value
+                    reasons[id_val] = "エラーが発生しました"
 
+            # 結果と理由を別々の列として追加
             self.df[column_name] = self.df[self.column_mapping['id_column']].map(results).fillna(default_value)
-            print(f"分析が完了しました。新しい列 '{column_name}' が追加されました。")
+            self.df[f"{column_name}_理由"] = self.df[self.column_mapping['id_column']].map(reasons).fillna("理由なし")
+            
+            print(f"分析が完了しました。新しい列 '{column_name}' と '{column_name}_理由' が追加されました。")
             return True
 
         except Exception as e:
@@ -321,8 +345,15 @@ class ExcelAnalyzer:
             return "与えられたテキストに対して質問に答えてください。回答は 'はい' または 'いいえ' でお願いします。"
         return """
         与えられたテキストから情報を抽出してください。
-        - 回答は抽出した情報のみを簡潔に返してください
-        - 情報が見つからない場合は 'N/A' と返してください
+        回答は以下のJSON形式で返してください：
+        {
+            "result": "抽出した情報",
+            "reason": "その情報を抽出した理由と、テキスト内の該当箇所"
+        }
+        
+        注意事項：
+        - 情報が見つからない場合は "result": "N/A" としてください
+        - 理由は具体的な記載箇所を含めてください
         - 説明や追加のコメントは不要です
         - 複数の情報がある場合は、最新の情報を返してください
         """
@@ -349,7 +380,10 @@ class ExcelAnalyzer:
                     temperature=0.1,
                     max_tokens=512
                 )
-                return completion.choices[0].message.content.strip()
+                response = completion.choices[0].message.content.strip()
+                # 余分な文字を除去
+                response = response.replace("```json", "").replace("```", "").strip()
+                return response
 
             elif self.provider == "gemini":
                 response = self.client.models.generate_content(
@@ -359,7 +393,10 @@ class ExcelAnalyzer:
                     config = types.GenerateContentConfig(
                         system_instruction=system_prompt
                 ))
-                return response.text
+                response = response.text.strip()
+                # 余分な文字を除去
+                response = response.replace("```json", "").replace("```", "").strip()
+                return response
 
             elif self.provider == "claude":
                 completion = self.client.messages.create(
@@ -371,7 +408,10 @@ class ExcelAnalyzer:
                         {"role": "user", "content": f"テキスト: {text}"}
                     ]
                 )
-                return completion.content[0].text.strip()
+                response = completion.content[0].text.strip()
+                # 余分な文字を除去
+                response = response.replace("```json", "").replace("```", "").strip()
+                return response
 
         except Exception as e:
             raise Exception(f"API呼び出し中にエラーが発生: {str(e)}")
