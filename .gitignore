@@ -38,3 +38,5 @@ Thumbs.db
 # Project specific
 *_analyzed.xlsx
 sample_data.xlsx 
+analyzed_results.xlsx
+temp.xlsx
