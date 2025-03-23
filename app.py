@@ -332,7 +332,7 @@ def main():
                     selected_templates = st.multiselect(
                         "実行する分析を選択",
                         options=analyzer.templates.keys(),
-                        default=list(analyzer.templates.keys()),
+                        default=["cancer_diagnosis", "cancer_stage", "diagnostic_test"],
                         format_func=lambda x: analyzer.templates[x]["name"],
                         help="実行したい分析の種類を選択してください。複数選択可能です。"
                     )
@@ -658,7 +658,7 @@ def main():
                 "患者数",
                 min_value=1,
                 max_value=1000,
-                value=50,
+                value=3,
                 help="生成する患者データの数を指定してください"
             )
         
