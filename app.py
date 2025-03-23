@@ -337,13 +337,15 @@ def main():
                         help="実行したい分析の種類を選択してください。複数選択可能です。"
                     )
 
-                # 特定の患者IDの選択
-                with col2:
-                    sample_id = st.selectbox(
-                        "サンプルIDを選択（オプション）",
-                        options=["すべて"] + list(analyzer.df[analyzer.column_mapping['id_column']].unique()),
-                        help="特定の患者のデータのみを分析する場合は、該当のIDを選択してください。"
-                    )
+                # 特定の患者IDの選択（一時的に無効化）
+                # TODO: 将来的にサンプルID選択機能を復活させる
+                # with col2:
+                #     sample_id = st.selectbox(
+                #         "サンプルIDを選択（オプション）",
+                #         options=["すべて"] + list(analyzer.df[analyzer.column_mapping['id_column']].unique()),
+                #         help="特定の患者のデータのみを分析する場合は、該当のIDを選択してください。"
+                #     )
+                sample_id = "すべて"  # デフォルトで全データを分析
 
                 # 分析実行ボタンと処理
                 if st.button("分析を実行", type="primary", help="選択した分析を開始します"):

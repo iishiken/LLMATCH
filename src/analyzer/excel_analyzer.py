@@ -306,9 +306,9 @@ class ExcelAnalyzer:
                     except json.JSONDecodeError as e:
                         print(f"JSON解析エラー: {str(e)}")
                         print(f"問題の応答: {response}")
-                        # JSONとして解析できない場合は、従来の処理を実行
-                        result = self._parse_llm_response(response) if analysis_type == "binary" else response.strip()
-                        reason = "理由なし"
+                        # JSONとして解析できない場合は、LLMの出力をそのまま表示
+                        result = response.strip()
+                        reason = "JSONエラー"
                     
                     results[id_val] = result
                     reasons[id_val] = reason
