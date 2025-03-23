@@ -386,9 +386,7 @@ def main():
                                 if result:
                                     analysis_result.write(f"""
                                     **最新の分析結果:**
-                                    ```json
                                     {json.dumps(result, ensure_ascii=False, indent=2)}
-                                    ```
                                     """)
 
                             # コールバック関数を渡して分析を実行

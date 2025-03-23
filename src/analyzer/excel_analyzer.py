@@ -135,7 +135,7 @@ class ExcelAnalyzer:
             "vllm": "Qwen/Qwen2.5-72B-Instruct-GPTQ-Int4",
             "openai": "gpt-4o-mini-2024-07-18",
             "gemini": "gemini-2.0-flash-lite",
-            "claude": "claude-3-haiku-20240307",
+            "claude": "claude-3-5-haiku-latest",
             "deepseek": "deepseek-chat"
         }
         return defaults.get(self.provider, "")
@@ -349,6 +349,7 @@ class ExcelAnalyzer:
             elif self.provider == "gemini":
                 response = self.client.models.generate_content(
                     model = "gemini-2.0-flash-lite", #モデル名を直接指定している
+                    #model=self.model_name,
                     contents= text,
                     config = types.GenerateContentConfig(
                         system_instruction=system_prompt
@@ -357,8 +358,8 @@ class ExcelAnalyzer:
 
             elif self.provider == "claude":
                 completion = self.client.messages.create(
-                    model="claude-3-5-haiku-latest", #モデル名を直接指定している
-                    #model=self.model_name,
+                    #model="claude-3-5-haiku-latest", #モデル名を直接指定している
+                    model=self.model_name,
                     max_tokens=512,
                     system=system_prompt,
                     messages=[
