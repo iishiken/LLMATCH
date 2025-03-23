@@ -348,7 +348,7 @@ class ExcelAnalyzer:
 
             elif self.provider == "gemini":
                 response = self.client.models.generate_content(
-                    model = "gemini-2.0-flash-lite",
+                    model = "gemini-2.0-flash-lite", #モデル名を直接指定している
                     contents= text,
                     config = types.GenerateContentConfig(
                         system_instruction=system_prompt
@@ -356,14 +356,14 @@ class ExcelAnalyzer:
                 return response.text
 
             elif self.provider == "claude":
-                messages = [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": f"テキスト: {text}"}
-                ]
                 completion = self.client.messages.create(
-                    model=self.model_name,
-                    messages=messages,
-                    max_tokens=512
+                    model="claude-3-5-haiku-latest", #モデル名を直接指定している
+                    #model=self.model_name,
+                    max_tokens=512,
+                    system=system_prompt,
+                    messages=[
+                        {"role": "user", "content": f"テキスト: {text}"}
+                    ]
                 )
                 return completion.content[0].text.strip()
 
