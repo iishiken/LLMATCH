@@ -261,10 +261,13 @@ class ExcelAnalyzer:
             return {"success": False, "error": "テンプレートが見つかりません"}
 
         template = self.templates[template_key]
+        # テンプレート名を含む列名を生成
+        column_name = f"分析結果_{template_key}_{template['analysis_type']}"
         result = self.analyze_with_llm(
             analysis_type=template["analysis_type"],
             system_prompt=template["system_prompt"],
-            progress_callback=progress_callback
+            progress_callback=progress_callback,
+            column_name=column_name  # 列名を渡す
         )
         
         return {
@@ -273,12 +276,14 @@ class ExcelAnalyzer:
             "analysis_type": template["analysis_type"]
         }
 
-    def analyze_with_llm(self, analysis_type: str = "extract", system_prompt: Optional[str] = None, progress_callback=None) -> bool:
+    def analyze_with_llm(self, analysis_type: str = "extract", system_prompt: Optional[str] = None, progress_callback=None, column_name: Optional[str] = None) -> bool:
         """LLMを使用して自由記載を分析し、結果を新しい列として追加"""
         if not self._validate_data():
             return False
 
-        column_name = f"分析結果_{analysis_type}"
+        # 列名が指定されていない場合はデフォルトの列名を生成
+        if column_name is None:
+            column_name = f"分析結果_{analysis_type}"
         default_value = False if analysis_type == "binary" else "N/A"
         
         try:
