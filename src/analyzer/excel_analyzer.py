@@ -511,7 +511,7 @@ class ExcelAnalyzer:
                 response = self.client.models.list()
                 return [model.id for model in response.data]
             elif self.provider == "gemini":
-                return ["gemini-pro"]
+                return ["gemini-2.0-flash-lite"]
             elif self.provider == "claude":
                 return ["claude-3-opus-20240229", "claude-3-sonnet-20240229", "claude-3-haiku-20240307"]
             elif self.provider == "deepseek":
