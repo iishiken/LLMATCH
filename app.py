@@ -154,9 +154,21 @@ def main():
                 env_value = os.environ.get(k, "")
                 st.write(f"- {k}: {'設定済み' if env_value else '未設定'}")
             
+            # Geminiの場合はStreamlitのシークレットから取得を試みる
+            env_api_key = None
+            if provider == "gemini":
+                try:
+                    gemini_streamlit_api_key = st.secrets["Gemini"]["GOOGLE_API_KEY"]
+                    if gemini_streamlit_api_key:
+                        env_api_key = gemini_streamlit_api_key
+                        st.write("Streamlitシークレットからgemini APIキーを取得しました")
+                except Exception as e:
+                    st.write(f"Streamlitシークレットからの取得エラー: {str(e)}")
+            
             # 環境変数からAPIキーを取得（空文字列の場合はNoneとして扱う）
-            env_api_key = os.environ.get(env_var_name, "").strip()
-            st.write(f"環境変数から取得したAPIキーの長さ: {len(env_api_key) if env_api_key else 0}")
+            if not env_api_key:
+                env_api_key = os.environ.get(env_var_name, "").strip()
+                #st.write(f"環境変数から取得したAPIキーの長さ: {len(env_api_key) if env_api_key else 0}")
             
             if not env_api_key:
                 env_api_key = None
@@ -189,7 +201,7 @@ def main():
                 )
             else:
                 api_key = env_api_key
-                st.success(f"環境変数 {env_var_name} からAPIキーを読み込みました")
+                st.success(f"APIキーを読み込みました")
             
             # APIキーが環境変数にもUIにも設定されていない場合は警告
             if not env_api_key and not api_key:
