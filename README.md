@@ -58,9 +58,7 @@ streamlitによる直感的なUI作成
 - その他のLLMプロバイダー（OpenAI、Anthropic Claude、Deepseek）は要APIキー
 
 ### 2. ローカル実行版
-- すべてのLLMプロバイダーに対応
-- Gemini Flash Lightはお試し用として即座に利用可能
-- その他のプロバイダーは要APIキー設定
+- すべてのLLMプロバイダーに対応(要APIキー)
 - vLLMサーバーの独自構築が可能
 - GitHubからクローンして実行
 
