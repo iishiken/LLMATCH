@@ -10,10 +10,10 @@ streamlitによる直感的なUI作成
 ## 主な機能
 
 ### 1. マルチLLMプロバイダー対応
-- vLLM（ローカルLLMサーバー - Qwen 2.5 72B）
-- OpenAI（GPT-4 Turbo）
+- vLLM（ローカルLLMサーバー）
+- OpenAI
 - Google Gemini（Gemini 2.0 Flash Lite）
-- Anthropic Claude（Claude 3 Opus）
+- Anthropic Claude
 - Deepseek（Deepseek Chat）
 
 ### 2. Webインターフェース (`app.py`)
@@ -42,13 +42,27 @@ streamlitによる直感的なUI作成
 - Excel形式の医療記録からの情報抽出
 - 患者IDごとの時系列データの統合
 - カスタマイズ可能なプロンプトテンプレート
-- 分析タイプ：
+- 分析タイプ：(現在はextractのみ)
   - 抽出（extract）
   - 分類（classify）
   - 要約（summarize）
 - 分析結果の自動保存とExcelエクスポート
 
-## セットアップ
+## 使用方法
+
+本システムは以下の2つの方法で利用できます：
+
+### 1. Streamlit Cloud版
+- https://llmatch-7mnc3rpgpcupdw5dgjpzf5.streamlit.app/ にアクセス
+- Gemini Flash Lightがお試し用として即座に利用可能
+- その他のLLMプロバイダー（OpenAI、Anthropic Claude、Deepseek）は要APIキー
+
+### 2. ローカル実行版
+- すべてのLLMプロバイダーに対応
+- Gemini Flash Lightはお試し用として即座に利用可能
+- その他のプロバイダーは要APIキー設定
+- vLLMサーバーの独自構築が可能
+- GitHubからクローンして実行
 
 ### 1. 必要なパッケージのインストール
 ```bash
@@ -64,39 +78,7 @@ export ANTHROPIC_API_KEY="your-api-key"
 export DEEPSEEK_API_KEY="your-api-key"
 ```
 
-## 使用方法
 
-### A. Webインターフェースでの実行（推奨）
-
-1. Streamlitアプリケーションを起動：
-```bash
-streamlit run app.py
-```
-
-2. ブラウザで以下のURLにアクセス：
-```
-http://localhost:8501
-```
-
-3. Webインターフェースの使用手順：
-   - LLMプロバイダーとモデルを選択
-   - テンプレートファイルのパスを確認
-   - 医療記録Excelファイルをアップロード
-   - 分析したいテンプレートを選択
-   - 「分析を実行」ボタンをクリック
-   - 結果を確認し、必要に応じてダウンロード
-
-### B. コマンドライン実行
-
-#### 1. ダミーデータの生成
-```bash
-python examples/test_data_generator.py
-```
-
-#### 2. テキスト分析の実行
-```bash
-python analyze_medical_records.py
-```
 
 ## データ形式
 
