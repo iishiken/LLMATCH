@@ -108,10 +108,14 @@ def main():
     with st.sidebar:
         st.header("設定")
         
-        # GitHubのIssueへのリンク
+        # フィードバックセクション
         st.markdown("""
         ### フィードバック
-        🔔 [ご意見・ご要望はこちら](https://github.com/iishiken/LLMATCH/issues)
+        ご意見・ご要望があれば以下までお願いいたします。：
+        
+        📝 [Google Form](https://forms.gle/bdU89qX7KXVDaceb6)
+        
+        🔔 [GitHub Issue](https://github.com/iishiken/LLMATCH/issues)
         """)
         
         # LLMプロバイダーの選択
