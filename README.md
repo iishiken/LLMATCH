@@ -111,5 +111,5 @@ python analyze_medical_records.py
 - Streamlitインターフェースは同時に複数のユーザーによる使用を想定していません
 
 ## ライセンス
-MIT License
+Apache License 2.0
 
