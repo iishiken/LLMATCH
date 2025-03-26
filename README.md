@@ -7,6 +7,12 @@ streamlitによる直感的なUI作成
 このシステムは、医療記録の時系列テキストデータを分析し、がん診療に関する重要な医療情報を自動抽出するツールです。
 直感的なWebインターフェースにより、簡単に分析を実行できます。
 
+## 2つの使い方
+![Image](https://github.com/user-attachments/assets/7c168fdd-e273-4e82-9156-2a8429e49f52)
+
+## アプリのフロー
+![Image](https://github.com/user-attachments/assets/a3c61cfa-9b3b-4717-8683-c5f9eb71388a)
+
 ## 主な機能
 
 ### 1. マルチLLMプロバイダー対応
