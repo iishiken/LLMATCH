@@ -99,3 +99,4 @@ export DEEPSEEK_API_KEY="your-api-key"
 ## ライセンス
 Apache License 2.0
 
+## Sponsors Sponsorship provided by the LLMATCH program of the Matsuo Laboratory LLM Community. [https://linktr.ee/matsuolab_community](https://linktr.ee/matsuolab_community)
