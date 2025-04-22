@@ -378,8 +378,51 @@ def main():
                     if st.button("分析を停止", type="secondary"):
                         st.session_state.stop_analysis = True
                         st.warning("分析を停止しています...")
-                        return
+                        
+                        # 分析結果の列を特定
+                        analysis_columns = [col for col in analyzer.df.columns if col.startswith('分析結果_')]
+                        
+                        if analysis_columns:
+                            # 分析結果の概要を表示
+                            if sample_id == "すべて":
+                                # 新しいExcelAnalyzerインスタンスを作成して結果データを設定
+                                summary_analyzer = ExcelAnalyzer(llm_server_url=llm_server_url, template_path=template_path)
+                                summary_analyzer.df = analyzer.df
+                                display_analysis_summary_streamlit(summary_analyzer, analysis_columns)
+                            else:
+                                # 特定IDの分析結果概要
+                                temp_df = analyzer.df[analyzer.df[analyzer.column_mapping['id_column']] == sample_id].copy()
+                                temp_analyzer = ExcelAnalyzer(llm_server_url=llm_server_url, template_path=template_path)
+                                temp_analyzer.df = temp_df
+                                
+                                st.subheader(f"ID: {sample_id} の分析結果概要")
+                                display_analysis_summary_streamlit(temp_analyzer, analysis_columns)
+                        
+                        # 分析結果の表示
+                        st.subheader("分析結果データ")
+                        if sample_id != "すべて":
+                            result_df = analyzer.df[analyzer.df[analyzer.column_mapping['id_column']] == sample_id]
+                        else:
+                            result_df = analyzer.df
+                        
+                        st.write("分析結果の一覧を表示します")
+                        st.dataframe(result_df)
 
+                        # 結果のダウンロード機能
+                        analyzer.save_results("analyzed_results.xlsx")
+                        with open("analyzed_results.xlsx", "rb") as f:
+                            st.download_button(
+                                label="分析結果をダウンロード",
+                                data=f,
+                                file_name="analyzed_results.xlsx",
+                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                help="分析結果をExcelファイルとしてダウンロードできます"
+                            )
+                        
+                        # 分析を停止したことを明示的に表示
+                        st.error("分析が停止されました。上記は停止時点までの分析結果です。")
+                        st.stop()  # これ以降の処理を停止
+                    
                     with st.spinner("分析を実行中..."):
                         # 選択された各テンプレートに対して分析を実行
                         total_templates = len(selected_templates)
